@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>录屏</title>
+    <style>
+        body,html{
+            margin: 0;
+            padding: 20px;
+        }
+        .center{
+            width: 400px;
+            height: 300px;
+            border: 1px solid #000;
+        }
+        .mt20{
+            margin-top :20px;
+        }
+    </style>     
+</head>
+<body>
+    <button id="start">分享屏幕</button>
+    <button id="stop">关闭分享录制</button>
+    <button id="resume">暂停</button>
+    <button id="record">开始</button>
+    <button id="download">下载</button>
+    <video class="center mt20" id="playView">
+
+    </video>
+
+    <script>
+        let allStream;
+        document.querySelector('#start').onclick = () =>{
+            if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+                navigator.mediaDevices.getDisplayMedia({
+                    video: true,
+                    audio: false
+                }).then((stream) => {
+                    allStream = stream
+                    let video = document.querySelector('#playView')
+                    video.srcObject = stream;
+                    video.play()
+
+
+                }).catch((err) => {
+                    console.error(err);
+                })
+            }else {
+                alert('请确保https协议下或localhost下')
+            }
+        }
+        let buf = [];
+        let mediaRecorder;
+        document.querySelector('#stop').onclick = function() {
+            if (mediaRecorder) {
+                mediaRecorder.pause();
+            }
+        }
+        // document.querySelector('#resume').onclick = ()=>{
+        //     mediaRecorder.stop();
+        // }
+        document.querySelector('#download').onclick = function() {
+            mediaRecorder.stop();
+            if (buf.length) {
+                const blob = new Blob(buf, { type: 'video/webm'});
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.style.display = 'none';
+                a.download = 'aaa.webm';
+                a.click();
+            } else {
+                alert('还没有录制任何内容');
+            }
+        }
+        document.querySelector('#record').onclick = function() {
+            // 约束视频格式
+
+            var options = {};
+            if (typeof MediaRecorder.isTypeSupported != 'function') return 
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                options.mimeType = 'video/webm;codecs=vp8';
+            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                options.mimeType = 'video/webm;codecs=vp9';
+            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+                options.mimeType = 'video/webm;codecs=h264';
+            }else{
+                console.error('不支持的视频格式');
+                return
+            }
+            try {
+                mediaRecorder = new MediaRecorder(allStream, options);
+                // 处理采集到的事件
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e && e.data && e.data.size > 0) {
+                        // 存储到数组中
+                        buf.push(e.data);
+                    }
+                };
+                // 开始录制
+                mediaRecorder.start(10);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+
+
+</body>
+</html>
